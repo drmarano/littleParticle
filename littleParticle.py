@@ -36,8 +36,8 @@ def checkCollision (allParticles):
 				viy = list(allParticles)[i].vy
 				vjx = list(allParticles)[j].vx
 				vjy = list(allParticles)[j].vy
-				vi = sqrt(vix**2 + viy**2)
-				vj = sqrt(vjx**2 + vjy**2)
+
+				#get the angle of each particle's velocity
 				if vix == 0:
 					if viy < 0:
 						viTheta = -pi/2
@@ -47,7 +47,6 @@ def checkCollision (allParticles):
 					viTheta = pi+atan(viy/vix)
 				else:
 					viTheta = atan(viy/vix)
-
 				if vjx == 0:
 					if vjy < 0:
 						vjTheta = -pi/2
@@ -58,6 +57,9 @@ def checkCollision (allParticles):
 				else:
 					vjTheta = atan(vjy/vjx)
 
+				#get the speed of each particle
+				vi = sqrt(vix**2 + viy**2)
+				vj = sqrt(vjx**2 + vjy**2)
 
 				#2D collision equation
 				viPerpendicular = (vi*(mi-mj)*cos(viTheta-phi)+2*mj*vj*cos(vjTheta-phi))/(mi+mj)
