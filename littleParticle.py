@@ -10,6 +10,7 @@ from pygame.locals import (
 	K_LEFT,
 	K_RIGHT,
 	K_ESCAPE,
+	K_b,
 	K_n,
 	K_m,
 	QUIT)
@@ -26,45 +27,35 @@ pygame.init()
 def applyGravity(allParticles):
 	for i in range(len(list(allParticles))):
 		list(allParticles)[i].vy = list(allParticles)[i].vy + gravity
+
+
 #check the distance between each particle to see if they collide
-def checkCollision (allParticles):
+def checkInteraction(allParticles):
 	for i in range(len(list(allParticles))):
 		j = i + 1
 		while j < len(list(allParticles)):
-#			ix = list(allParticles)[i].rect.center[0]
-#			iy = list(allParticles)[i].rect.center[1]
-#			jx = list(allParticles)[j].rect.center[0]
-#			jy = list(allParticles)[j].rect.center[1]
 			ix = list(allParticles)[i].x
 			iy = list(allParticles)[i].y
 			jx = list(allParticles)[j].x
 			jy = list(allParticles)[j].y
 			ir = list(allParticles)[i].r
 			jr = list(allParticles)[j].r
-			#define collision angle
+			#define angle between particles
 			if (ix-jx) == 0: phi = pi/2
 			else: phi = atan((iy-jy)/(ix-jx))
 			#a collision occurs when particles get closer than 30 px away
-			if sqrt((ix-jx)**2+(iy-jy)**2) < (ir+jr/2):
+			if sqrt((ix-jx)**2+(iy-jy)**2) <= (ir+jr/2):
 				#prevent them from moving too close to each other
 				if ix>jx:
-#					list(allParticles)[i].rect.move_ip(1,0)
-#					list(allParticles)[j].rect.move_ip(-1,0)
 					list(allParticles)[i].x = list(allParticles)[i].x + 1
 					list(allParticles)[j].x = list(allParticles)[j].x - 1
 				else:
-#					list(allParticles)[i].rect.move_ip(-1,0)
-#					list(allParticles)[j].rect.move_ip(1,0)
 					list(allParticles)[i].x = list(allParticles)[i].x - 1
 					list(allParticles)[j].x = list(allParticles)[j].x + 1
 				if iy>jy:
-#					list(allParticles)[i].rect.move_ip(0,1)
-#					list(allParticles)[j].rect.move_ip(0,-1)
 					list(allParticles)[i].y = list(allParticles)[i].y + 1
 					list(allParticles)[j].y = list(allParticles)[j].y - 1
 				else:
-#					list(allParticles)[i].rect.move_ip(0,-1)
-#					list(allParticles)[j].rect.move_ip(0,1)
 					list(allParticles)[i].y = list(allParticles)[i].y - 1
 					list(allParticles)[j].y = list(allParticles)[j].y + 1
 				#get the mass of each particle
@@ -98,15 +89,37 @@ def checkCollision (allParticles):
 				list(allParticles)[i].vy = viPerpendicular*sin(phi) + viParallel*cos(phi)
 				list(allParticles)[j].vx = vjPerpendicular*cos(phi) - vjParallel*sin(phi)
 				list(allParticles)[j].vy = vjPerpendicular*sin(phi) + vjParallel*cos(phi)
-
+			#perform electric force equation if neither of the charges are 0
+			elif list(allParticles)[i].q != 0 and list(allParticles)[j].q != 0:
+				ai = list(allParticles)[i].q*list(allParticles)[j].q/(list(allParticles)[i].m*((ix-jx)**2+(iy-jy)**2))
+				aj = list(allParticles)[i].q*list(allParticles)[j].q/(list(allParticles)[j].m*((ix-jx)**2+(iy-jy)**2))
+				#resolve direction of each acceleration
+				if ix>jx:
+					aix = ai*cos(phi)
+					aiy = ai*sin(phi)
+					ajx = -aj*cos(phi)
+					ajy = -aj*sin(phi)
+				else:
+					aix = -ai*cos(phi)
+					aiy = -ai*sin(phi)
+					ajx = aj*cos(phi)
+					ajy = aj*sin(phi)
+				list(allParticles)[i].vx = list(allParticles)[i].vx + aix
+				list(allParticles)[i].vy = list(allParticles)[i].vy + aiy
+				list(allParticles)[j].vx = list(allParticles)[j].vx + ajx
+				list(allParticles)[j].vy = list(allParticles)[j].vy + ajy
 			j += 1
 
-#get the total kinetic energy of all the particles
-def getEnergy(allParticles,KE):
+#get the total kinetic and potential energy of all the particles
+def getEnergy(allParticles,KE,PE,E):
 	KE = 0
+	PE = 0
+	E = 0
 	for i in range(len(list(allParticles))):
-		KE = KE + sqrt(list(allParticles)[i].vx**2+list(allParticles)[i].vy**2)
-	print(KE)
+		KE = KE + (list(allParticles)[i].m * (list(allParticles)[i].vx**2 + list(allParticles)[i].vy**2))/2
+		PE = PE + list(allParticles)[i].m * gravity * (SCREEN_HEIGHT - list(allParticles)[i].y - list(allParticles)[i].r)
+		E = KE + PE
+	print(int(E))
 
 #define a player object by extending pygame.sprites.Sprite
 #the surface drawn on the screen is now an attribute of "player"
@@ -117,25 +130,28 @@ class Particle(pygame.sprite.Sprite):
 		#self.image.set_colorkey((0,0,0),RLEACCEL)
 		#self.rect = self.image.get_rect(center=(random.randint(0,SCREEN_WIDTH),random.randint(0,SCREEN_HEIGHT)))
 		self.player = False
-		self.x = random.randint(0,SCREEN_WIDTH)
-		self.y = random.randint(0,SCREEN_HEIGHT)
+#		self.x = random.randint(0,SCREEN_WIDTH)
+#		self.y = random.randint(0,SCREEN_HEIGHT)
+		self.x = random.randint(SCREEN_WIDTH/2-SCREEN_WIDTH/10,SCREEN_WIDTH/2+SCREEN_WIDTH/10)
+		self.y = random.randint(SCREEN_HEIGHT/2-SCREEN_HEIGHT/10,SCREEN_HEIGHT/2+SCREEN_HEIGHT/10)
 		self.vx = 0
 		self.vy = 0
-		self.r = 20
+		self.r = 10
 		self.m = 1
+		self.q = 0
 		self.color = GREEN
 	#define the reaction of the player to key strokes
 	def update(self,pressed_keys):
 		if self.player:
 			#change the player's speed based on pressed keys
 			if pressed_keys[K_LEFT]:
-				self.vx -= 1
+				self.vx -= .5
 			if pressed_keys[K_RIGHT]:
-				self.vx += 1
+				self.vx += .5
 			if pressed_keys[K_UP]:
-				self.vy -= 1
+				self.vy -= .5
 			if pressed_keys[K_DOWN]:
-				self.vy += 1
+				self.vy += .5
 #		if self.red:
 #			self.surf.fill((255,0,255))
 		#move based on velocity
@@ -161,7 +177,7 @@ pygame.display.set_caption("LITTLE PARTICLE")
 #set up clock to control framerate
 clock = pygame.time.Clock()
 #define screen constraints
-SCREEN_WIDTH = 1200
+SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
 #create the screen object based off of the parameters defined
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -171,6 +187,7 @@ BLACK=(0,0,0)
 RED=(255,0,0)
 GREEN=(0,225,0)
 BLUE=(0,0,225)
+MAGENTA=(255,0,255)
 
 #create a custom event for adding a new particle and set it to occur once a second
 #ADDPARTICLE = pygame.USEREVENT + 1
@@ -179,10 +196,8 @@ BLUE=(0,0,225)
 #instantiate the player
 player = Particle()
 player.player = True
-player.r = 30
+player.q = 10
 player.color = RED
-#player.image = pygame.image.load("circleRed.png").convert()
-#player.rect.center = (400,400)
 
 #create groups to hold all the particles
 allParticles = pygame.sprite.Group()
@@ -193,7 +208,9 @@ running = True
 
 #define other features
 KE = 0
-gravity = 0.2
+PE = 0
+E = 0
+gravity = 0
 
 #main loop
 while running:
@@ -209,28 +226,37 @@ while running:
 
 		#add a new particle
 		elif event.type == KEYDOWN and event.key == K_n:
-			print("adding a particle")
+			print("adding a neutral particle")
 			#create the new enemy and add it to the sprite groups
 			newParticle = Particle()
 			allParticles.add(newParticle)
-#			x=0
-#			while x < 30:
-#				newParticle = Particle()
-#				newParticle.x = x*40
-#				newParticle.y = x*20
-#				newParticle.m = 1
-#				allParticles.add(newParticle)
-#				x = x + 1
+		elif event.type == KEYDOWN and event.key == K_m:
+			print("adding a positive particle")
+			#create the new enemy and add it to the sprite groups
+			newParticle = Particle()
+			newParticle.q = 25
+			newParticle.color = RED
+			allParticles.add(newParticle)
+		elif event.type == KEYDOWN and event.key == K_b:
+			print("adding a positive particle")
+			#create the new enemy and add it to the sprite groups
+			newParticle = Particle()
+			newParticle.q = -25
+			newParticle.color = BLUE
+			allParticles.add(newParticle)
+
 
 	
 	#get the set of keys pressed and check for user input
 	pressed_keys = pygame.key.get_pressed()
 	#apply gravity to each particle
-	applyGravity(allParticles)
+#	applyGravity(allParticles)
+	#apply electric force between each particle
+#	applyElectricForce(allParticles)
 	#check if any particles collide
-	checkCollision(allParticles)
+	checkInteraction(allParticles)
 	#measure the total kinetic energy
-	getEnergy(allParticles,KE)
+#	getEnergy(allParticles,KE,PE,E)
 
 	#update each particle's movement each frame based off of colisions and keys pressed
 	for item in allParticles:
