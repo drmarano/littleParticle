@@ -85,10 +85,10 @@ def checkInteraction(allParticles):
 				viParallel = vi*sin(viTheta-phi)
 				vjPerpendicular = (vj*(mj-mi)*cos(vjTheta-phi)+2*mi*vi*cos(viTheta-phi))/(mi+mj)
 				vjParallel = vj*sin(vjTheta-phi)
-				list(allParticles)[i].vx = viPerpendicular*cos(phi) - viParallel*sin(phi)
-				list(allParticles)[i].vy = viPerpendicular*sin(phi) + viParallel*cos(phi)
-				list(allParticles)[j].vx = vjPerpendicular*cos(phi) - vjParallel*sin(phi)
-				list(allParticles)[j].vy = vjPerpendicular*sin(phi) + vjParallel*cos(phi)
+				list(allParticles)[i].vx = (viPerpendicular*cos(phi) - viParallel*sin(phi)) * damping
+				list(allParticles)[i].vy = (viPerpendicular*sin(phi) + viParallel*cos(phi)) * damping
+				list(allParticles)[j].vx = (vjPerpendicular*cos(phi) - vjParallel*sin(phi)) * damping
+				list(allParticles)[j].vy = (vjPerpendicular*sin(phi) + vjParallel*cos(phi)) * damping
 			#perform electric force equation if neither of the charges are 0
 			elif list(allParticles)[i].q != 0 and list(allParticles)[j].q != 0:
 				ai = list(allParticles)[i].q*list(allParticles)[j].q/(list(allParticles)[i].m*((ix-jx)**2+(iy-jy)**2))
@@ -211,6 +211,7 @@ KE = 0
 PE = 0
 E = 0
 gravity = 0
+damping = 0.9
 
 #main loop
 while running:
